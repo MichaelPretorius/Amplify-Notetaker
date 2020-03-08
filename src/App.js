@@ -6,7 +6,7 @@ import { createNote, deleteNote,  updateNote } from './graphql/mutations';
 import { listNotes } from './graphql/queries';
 import { onCreateNote, onDeleteNote, onUpdateNote } from './graphql/subscriptions';
 
-const App = () => {
+const App = ({ authData }) => {
   const [id, setId] = useState('');
   const [note, setNote] = useState('');
   const [notes, setNotes] = useState([]);
@@ -16,7 +16,7 @@ const App = () => {
   }, [])
 
   useEffect(() => {
-    const createNoteListener = API.graphql(graphqlOperation(onCreateNote)).subscribe({
+    const createNoteListener = API.graphql(graphqlOperation(onCreateNote, { owner: authData.username })).subscribe({
       next: res => {
         const newNote = res.value.data.onCreateNote;
         const prevNotes = notes.filter(note => note.id !== newNote.id);
@@ -24,7 +24,7 @@ const App = () => {
       }
     })
 
-    const deleteNoteListener = API.graphql(graphqlOperation(onDeleteNote)).subscribe({
+    const deleteNoteListener = API.graphql(graphqlOperation(onDeleteNote, { owner: authData.username })).subscribe({
       next: res => {
         const deletedNote = res.value.data.onDeleteNote;
         const updatedNotes = notes.filter(note => deletedNote.id !== note.id)
@@ -32,7 +32,7 @@ const App = () => {
       }
     })
 
-    const updateNoteListener = API.graphql(graphqlOperation(onUpdateNote)).subscribe({
+    const updateNoteListener = API.graphql(graphqlOperation(onUpdateNote, { owner: authData.username })).subscribe({
       next: res => {
         const updatedNote = res.value.data.onUpdateNote;
         const index = notes.findIndex(note => updatedNote.id === note.id)
@@ -47,7 +47,7 @@ const App = () => {
       deleteNoteListener.unsubscribe();
       updateNoteListener.unsubscribe();
     };
-  }, [notes])
+  }, [authData.username, notes])
 
   const getNotes = async () => {
     const res = await API.graphql(graphqlOperation(listNotes));
