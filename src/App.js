@@ -13,30 +13,34 @@ const App = ({ authData }) => {
 
   useEffect(() => {
     getNotes();
-  }, [])
-
-  useEffect(() => {
     const createNoteListener = API.graphql(graphqlOperation(onCreateNote, { owner: authData.username })).subscribe({
       next: res => {
         const newNote = res.value.data.onCreateNote;
-        const prevNotes = notes.filter(note => note.id !== newNote.id);
-        setNotes([...prevNotes, newNote]);
+        setNotes(prevNotes => {
+          const oldNotes = prevNotes.filter(note => note.id !== newNote.id);
+          return [...oldNotes, newNote];
+        });
+        setNote('');
       }
     })
 
     const deleteNoteListener = API.graphql(graphqlOperation(onDeleteNote, { owner: authData.username })).subscribe({
       next: res => {
         const deletedNote = res.value.data.onDeleteNote;
-        const updatedNotes = notes.filter(note => deletedNote.id !== note.id)
-        setNotes([...updatedNotes])
+        setNotes(prevNotes => {
+          const updatedNotes = prevNotes.filter(note => deletedNote.id !== note.id)
+          return updatedNotes;
+        });
       }
     })
 
     const updateNoteListener = API.graphql(graphqlOperation(onUpdateNote, { owner: authData.username })).subscribe({
       next: res => {
         const updatedNote = res.value.data.onUpdateNote;
-        const index = notes.findIndex(note => updatedNote.id === note.id)
-        setNotes([...notes.slice(0, index), updatedNote, ...notes.slice(index + 1)])
+        setNotes(prevNotes => {
+          const index = prevNotes.findIndex(note => updatedNote.id === note.id)
+          return [...prevNotes.slice(0, index), updatedNote, ...prevNotes.slice(index + 1)];
+        })
         setNote('');
         setId('');
       }
@@ -47,7 +51,8 @@ const App = ({ authData }) => {
       deleteNoteListener.unsubscribe();
       updateNoteListener.unsubscribe();
     };
-  }, [authData.username, notes])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const getNotes = async () => {
     const res = await API.graphql(graphqlOperation(listNotes));
@@ -85,7 +90,6 @@ const App = ({ authData }) => {
       handleUpdateNote();
     } else {
       await API.graphql(graphqlOperation(createNote, { input: { note }}))
-      setNote('');
     }
   }
 
